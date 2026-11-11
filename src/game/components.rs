@@ -122,6 +122,14 @@ pub struct Coin;
 #[derive(Component)]
 pub struct PowerUp;
 
+#[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PowerUpType {
+    SuperMushroom,
+    FireFlower,
+    Starman,
+    OneUp,
+}
+
 #[derive(Component)]
 pub struct SuperMushroom;
 

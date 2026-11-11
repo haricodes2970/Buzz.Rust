@@ -4,6 +4,7 @@ pub mod physics;
 pub mod camera;
 pub mod enemy;
 pub mod audio;
+pub mod gameplay;
 
 use bevy::prelude::*;
 use crate::GameState;
@@ -24,6 +25,18 @@ impl Plugin for SystemsPlugin {
                 movement::resolve_collisions,
             )
                 .chain()
+                .run_if(in_state(GameState::Playing)),
+        );
+
+        // Gameplay: timer, coin collection, power-up collection, enemy stomp
+        app.add_systems(
+            Update,
+            (
+                gameplay::update_timer,
+                gameplay::collect_coins,
+                gameplay::collect_powerup,
+                gameplay::stomp_enemy,
+            )
                 .run_if(in_state(GameState::Playing)),
         );
 

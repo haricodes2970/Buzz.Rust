@@ -124,6 +124,7 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
         LevelEntities,
         PowerUp,
         SuperMushroom,
+        PowerUpType::SuperMushroom,
         Transform::from_xyz(1150.0, 230.0, 0.0),
         Sprite {
             color: Color::srgb(1.0, 0.0, 0.0),
