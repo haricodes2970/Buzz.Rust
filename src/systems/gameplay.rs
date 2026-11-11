@@ -126,6 +126,18 @@ pub fn collect_powerup(
                     PowerState::Fire => PowerUpState::Fire,
                     PowerState::Starman => PowerUpState::Starman,
                 };
+
+                // Resize player collider for Super state
+                match new_state {
+                    PowerState::Super => {
+                        player_collider.size = Vec2::new(24.0, 52.0);
+                    }
+                    PowerState::Small => {
+                        player_collider.size = Vec2::new(24.0, 36.0);
+                    }
+                    _ => {}
+                }
+
                 score.value += 50;
                 commands.spawn((
                     AudioPlayer::<AudioSource>(asset_server.load("audio/powerup.wav")),
