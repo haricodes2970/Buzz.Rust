@@ -68,3 +68,141 @@ pub fn cleanup_main_menu(mut commands: Commands, query: Query<Entity, With<MainM
         commands.entity(entity).despawn();
     }
 }
+
+// --- Game Over Screen ---
+
+#[derive(Component)]
+pub struct GameOverEntity;
+
+pub fn setup_game_over(mut commands: Commands) {
+    commands.spawn(Camera2d);
+    commands.spawn((
+        GameOverEntity,
+        Text::new("GAME OVER"),
+        TextFont {
+            font_size: bevy::text::FontSize::Px(100.0),
+            ..default()
+        },
+        TextColor::WHITE,
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(200.0),
+            left: Val::Px(50.0),
+            ..default()
+        },
+    ));
+    commands.spawn((
+        GameOverEntity,
+        Text::new("Press SPACE to try again"),
+        TextFont {
+            font_size: bevy::text::FontSize::Px(32.0),
+            ..default()
+        },
+        TextColor::WHITE,
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(350.0),
+            left: Val::Px(50.0),
+            ..default()
+        },
+    ));
+}
+
+pub fn cleanup_game_over(mut commands: Commands, query: Query<Entity, With<GameOverEntity>>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
+    }
+}
+
+// --- Level Complete Screen ---
+
+#[derive(Component)]
+pub struct LevelCompleteEntity;
+
+pub fn setup_level_complete(mut commands: Commands) {
+    commands.spawn(Camera2d);
+    commands.spawn((
+        LevelCompleteEntity,
+        Text::new("LEVEL COMPLETE!"),
+        TextFont {
+            font_size: bevy::text::FontSize::Px(100.0),
+            ..default()
+        },
+        TextColor::WHITE,
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(200.0),
+            left: Val::Px(50.0),
+            ..default()
+        },
+    ));
+    commands.spawn((
+        LevelCompleteEntity,
+        Text::new("Press SPACE to continue"),
+        TextFont {
+            font_size: bevy::text::FontSize::Px(32.0),
+            ..default()
+        },
+        TextColor::WHITE,
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(350.0),
+            left: Val::Px(50.0),
+            ..default()
+        },
+    ));
+}
+
+pub fn cleanup_level_complete(
+    mut commands: Commands,
+    query: Query<Entity, With<LevelCompleteEntity>>,
+) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
+    }
+}
+
+// --- Pause Screen ---
+
+#[derive(Component)]
+pub struct PauseEntity;
+
+pub fn setup_pause(mut commands: Commands) {
+    commands.spawn(Camera2d);
+    commands.spawn((
+        PauseEntity,
+        Text::new("PAUSED"),
+        TextFont {
+            font_size: bevy::text::FontSize::Px(100.0),
+            ..default()
+        },
+        TextColor::WHITE,
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(200.0),
+            left: Val::Px(50.0),
+            ..default()
+        },
+    ));
+    commands.spawn((
+        PauseEntity,
+        Text::new("Press ESC to resume"),
+        TextFont {
+            font_size: bevy::text::FontSize::Px(32.0),
+            ..default()
+        },
+        TextColor::WHITE,
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(350.0),
+            left: Val::Px(50.0),
+            ..default()
+        },
+    ));
+}
+
+pub fn cleanup_pause(mut commands: Commands, query: Query<Entity, With<PauseEntity>>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
+    }
+}

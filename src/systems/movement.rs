@@ -14,10 +14,22 @@ pub fn handle_input(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
-    // Handle menu input
-    if current_state.get() == &GameState::MainMenu {
+    // Handle menu / game over / level complete input
+    if current_state.get() == &GameState::MainMenu
+        || current_state.get() == &GameState::GameOver
+        || current_state.get() == &GameState::LevelComplete
+    {
         if keyboard.just_pressed(KeyCode::Space) || keyboard.just_pressed(KeyCode::Enter) {
-            next_state.set(GameState::Playing);
+            match current_state.get() {
+                GameState::MainMenu | GameState::GameOver => {
+                    // Reset game state for new game
+                    next_state.set(GameState::Playing);
+                }
+                GameState::LevelComplete => {
+                    next_state.set(GameState::Playing);
+                }
+                _ => {}
+            }
         }
         return;
     }

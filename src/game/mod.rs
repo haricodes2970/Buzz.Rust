@@ -22,7 +22,19 @@ impl Plugin for GamePlugin {
             .add_systems(OnEnter(GameState::MainMenu), crate::ui::menu::setup_main_menu)
             .add_systems(OnExit(GameState::MainMenu), crate::ui::menu::cleanup_main_menu)
             .add_systems(OnEnter(GameState::Playing), setup_level)
-            .add_systems(OnExit(GameState::Playing), cleanup_level);
+            .add_systems(OnExit(GameState::Playing), cleanup_level)
+            .add_systems(OnEnter(GameState::GameOver), crate::ui::menu::setup_game_over)
+            .add_systems(OnExit(GameState::GameOver), crate::ui::menu::cleanup_game_over)
+            .add_systems(
+                OnEnter(GameState::LevelComplete),
+                crate::ui::menu::setup_level_complete,
+            )
+            .add_systems(
+                OnExit(GameState::LevelComplete),
+                crate::ui::menu::cleanup_level_complete,
+            )
+            .add_systems(OnEnter(GameState::Paused), crate::ui::menu::setup_pause)
+            .add_systems(OnExit(GameState::Paused), crate::ui::menu::cleanup_pause);
     }
 }
 
