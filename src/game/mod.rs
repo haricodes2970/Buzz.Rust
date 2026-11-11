@@ -1,6 +1,7 @@
 pub mod components;
 pub mod resources;
 
+use bevy::audio::{AudioPlayer, AudioSource};
 use bevy::prelude::*;
 use crate::game::components::*;
 use crate::game::resources::*;
@@ -189,7 +190,8 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
 
 // Level end detection
 pub fn check_level_end(
-    _commands: Commands,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     player_query: Query<(&Transform, &Collider), With<Player>>,
     trigger_query: Query<&Transform, (With<Name>, Without<Player>)>,
     mut next_state: ResMut<NextState<GameState>>,
@@ -224,6 +226,10 @@ pub fn check_level_end(
         {
             // Stop timer
             timer.expired = true;
+            commands.spawn((
+                AudioPlayer::<AudioSource>(asset_server.load("audio/level_complete.wav")),
+                PlaybackSettings::DESPAWN,
+            ));
             next_state.set(GameState::LevelComplete);
         }
     }

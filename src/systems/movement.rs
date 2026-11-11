@@ -1,3 +1,4 @@
+use bevy::audio::{AudioPlayer, AudioSource};
 use bevy::prelude::*;
 use crate::game::components::*;
 use crate::game::resources::*;
@@ -10,6 +11,8 @@ pub fn handle_input(
     mut player_query: Query<(&mut Velocity, &mut Grounded, &PowerState), With<Player>>,
     config: Res<GameConfig>,
     time: Res<Time>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
 ) {
     // Handle menu input
     if current_state.get() == &GameState::MainMenu {
@@ -60,6 +63,10 @@ pub fn handle_input(
     if keyboard.just_pressed(KeyCode::Space) || keyboard.just_pressed(KeyCode::KeyW) {
         velocity.value.y = config.jump_velocity;
         grounded.value = false;
+        commands.spawn((
+            AudioPlayer::<AudioSource>(asset_server.load("audio/jump.wav")),
+            PlaybackSettings::DESPAWN,
+        ));
     }
 
     // Variable jump height - release to cut

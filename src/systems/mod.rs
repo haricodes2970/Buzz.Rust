@@ -50,7 +50,5 @@ impl Plugin for SystemsPlugin {
         // Enemy AI
         app.add_systems(Update, enemy::enemy_ai.run_if(in_state(GameState::Playing)));
 
-        // Audio
-        app.add_systems(Update, audio::play_audio.run_if(in_state(GameState::Playing)));
     }
 }

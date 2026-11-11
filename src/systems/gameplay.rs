@@ -1,3 +1,4 @@
+use bevy::audio::{AudioPlayer, AudioSource};
 use bevy::prelude::*;
 use crate::game::components::*;
 use crate::game::resources::*;
@@ -10,6 +11,8 @@ pub fn update_timer(
     time: Res<Time>,
     mut lives: ResMut<Lives>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
 ) {
     if timer.expired {
         return;
@@ -26,6 +29,10 @@ pub fn update_timer(
         }
 
         if lives.value == 0 {
+            commands.spawn((
+                AudioPlayer::<AudioSource>(asset_server.load("audio/death.wav")),
+                PlaybackSettings::DESPAWN,
+            ));
             next_state.set(GameState::GameOver);
         } else {
             // Restart level - reset timer
@@ -39,6 +46,7 @@ pub fn update_timer(
 
 pub fn collect_coins(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     player_query: Query<(&Transform, &Collider), With<Player>>,
     coin_query: Query<(Entity, &Transform, &Collider), With<Coin>>,
     mut score: ResMut<Score>,
@@ -66,6 +74,10 @@ pub fn collect_coins(
             commands.entity(entity).despawn();
             score.value += 10;
             coins.value += 1;
+            commands.spawn((
+                AudioPlayer::<AudioSource>(asset_server.load("audio/coin.wav")),
+                PlaybackSettings::DESPAWN,
+            ));
         }
     }
 }
@@ -74,49 +86,52 @@ pub fn collect_coins(
 
 pub fn collect_powerup(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut player_query: Query<(&mut Transform, &mut Collider, &mut PowerState), With<Player>>,
     powerup_query: Query<(Entity, &Transform, &Collider, &PowerUpType)>,
     mut power_up_state: ResMut<PowerUpState>,
     mut score: ResMut<Score>,
 ) {
-    let Ok((mut player_transform, mut player_collider, mut player_power)) =
+    if let Ok((mut player_transform, mut player_collider, mut player_power)) =
         player_query.single_mut()
-    else {
-        return;
-    };
+    {
+        let player_bottom = player_transform.translation.y - player_collider.size.y / 2.0;
+        let player_top = player_transform.translation.y + player_collider.size.y / 2.0;
+        let player_left = player_transform.translation.x - player_collider.size.x / 2.0;
+        let player_right = player_transform.translation.x + player_collider.size.x / 2.0;
 
-    let player_bottom = player_transform.translation.y - player_collider.size.y / 2.0;
-    let player_top = player_transform.translation.y + player_collider.size.y / 2.0;
-    let player_left = player_transform.translation.x - player_collider.size.x / 2.0;
-    let player_right = player_transform.translation.x + player_collider.size.x / 2.0;
+        for (entity, pu_transform, pu_collider, pu_type) in powerup_query.iter() {
+            let pu_bottom = pu_transform.translation.y - pu_collider.size.y / 2.0;
+            let pu_top = pu_transform.translation.y + pu_collider.size.y / 2.0;
+            let pu_left = pu_transform.translation.x - pu_collider.size.x / 2.0;
+            let pu_right = pu_transform.translation.x + pu_collider.size.x / 2.0;
 
-    for (entity, pu_transform, pu_collider, pu_type) in powerup_query.iter() {
-        let pu_bottom = pu_transform.translation.y - pu_collider.size.y / 2.0;
-        let pu_top = pu_transform.translation.y + pu_collider.size.y / 2.0;
-        let pu_left = pu_transform.translation.x - pu_collider.size.x / 2.0;
-        let pu_right = pu_transform.translation.x + pu_collider.size.x / 2.0;
+            let overlap_x = player_right.max(pu_left) - player_left.min(pu_right);
+            let overlap_y = player_bottom.max(pu_top) - player_top.min(pu_bottom);
 
-        let overlap_x = player_right.max(pu_left) - player_left.min(pu_right);
-        let overlap_y = player_bottom.max(pu_top) - player_top.min(pu_bottom);
+            if overlap_x > 0.0 && overlap_y > 0.0 {
+                commands.entity(entity).despawn();
 
-        if overlap_x > 0.0 && overlap_y > 0.0 {
-            commands.entity(entity).despawn();
+                let new_state = match pu_type {
+                    PowerUpType::SuperMushroom => PowerState::Super,
+                    PowerUpType::FireFlower => PowerState::Fire,
+                    PowerUpType::Starman => PowerState::Starman,
+                    PowerUpType::OneUp => PowerState::Super,
+                };
 
-            let new_state = match pu_type {
-                PowerUpType::SuperMushroom => PowerState::Super,
-                PowerUpType::FireFlower => PowerState::Fire,
-                PowerUpType::Starman => PowerState::Starman,
-                PowerUpType::OneUp => PowerState::Super, // 1-up gives life, stay small
-            };
-
-            *player_power = new_state;
-            *power_up_state = match new_state {
-                PowerState::Small => PowerUpState::Small,
-                PowerState::Super => PowerUpState::Super,
-                PowerState::Fire => PowerUpState::Fire,
-                PowerState::Starman => PowerUpState::Starman,
-            };
-            score.value += 50;
+                *player_power = new_state;
+                *power_up_state = match new_state {
+                    PowerState::Small => PowerUpState::Small,
+                    PowerState::Super => PowerUpState::Super,
+                    PowerState::Fire => PowerUpState::Fire,
+                    PowerState::Starman => PowerUpState::Starman,
+                };
+                score.value += 50;
+                commands.spawn((
+                    AudioPlayer::<AudioSource>(asset_server.load("audio/powerup.wav")),
+                    PlaybackSettings::DESPAWN,
+                ));
+            }
         }
     }
 }
@@ -125,6 +140,7 @@ pub fn collect_powerup(
 
 pub fn stomp_enemy(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut player_query: Query<(&mut Velocity, &Transform, &Collider), With<Player>>,
     enemy_query: Query<(Entity, &Transform, &Collider), (With<Enemy>, With<Stompable>)>,
     mut score: ResMut<Score>,
@@ -156,6 +172,10 @@ pub fn stomp_enemy(
             commands.entity(entity).despawn();
             velocity.value.y = -300.0; // Bounce
             score.value += 100;
+            commands.spawn((
+                AudioPlayer::<AudioSource>(asset_server.load("audio/stomp.wav")),
+                PlaybackSettings::DESPAWN,
+            ));
         }
     }
 }
