@@ -151,6 +151,82 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
         },
         Name::new("Goomba"),
     ));
+
+    // Spawn flagpole at end of level
+    commands.spawn((
+        LevelEntities,
+        Flagpole,
+        Transform::from_xyz(1400.0, 200.0, 0.0),
+        Sprite {
+            color: Color::srgb(1.0, 0.0, 0.0),
+            custom_size: Some(Vec2::new(10.0, 200.0)),
+            ..default()
+        },
+        Name::new("Flagpole"),
+    ));
+
+    // Spawn flag at top of pole
+    commands.spawn((
+        LevelEntities,
+        Flag,
+        Transform::from_xyz(1405.0, 310.0, 0.0),
+        Sprite {
+            color: Color::srgb(1.0, 1.0, 0.0),
+            custom_size: Some(Vec2::new(30.0, 20.0)),
+            ..default()
+        },
+        Name::new("Flag"),
+    ));
+
+    // Level end trigger (invisible)
+    commands.spawn((
+        LevelEntities,
+        Collider::new(40.0, 400.0),
+        Transform::from_xyz(1420.0, 300.0, 0.0),
+        Name::new("LevelEndTrigger"),
+    ));
+}
+
+// Level end detection
+pub fn check_level_end(
+    _commands: Commands,
+    player_query: Query<(&Transform, &Collider), With<Player>>,
+    trigger_query: Query<&Transform, (With<Name>, Without<Player>)>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut timer: ResMut<TimerResource>,
+) {
+    let Ok((player_transform, player_collider)) = player_query.single() else {
+        return;
+    };
+
+    let player_bottom = player_transform.translation.y - player_collider.size.y / 2.0;
+    let player_top = player_transform.translation.y + player_collider.size.y / 2.0;
+    let player_left = player_transform.translation.x - player_collider.size.x / 2.0;
+    let player_right = player_transform.translation.x + player_collider.size.x / 2.0;
+
+    for trigger_transform in trigger_query.iter() {
+        let trigger = trigger_transform;
+        // Only check the level end trigger (named "LevelEndTrigger")
+        // We check by position - trigger is at x=1420
+        if trigger.translation.x < 1400.0 {
+            continue;
+        }
+
+        let trigger_left = trigger.translation.x - 20.0;
+        let trigger_right = trigger.translation.x + 20.0;
+        let trigger_top = trigger.translation.y + 200.0;
+        let trigger_bottom = trigger.translation.y - 200.0;
+
+        if player_right > trigger_left
+            && player_left < trigger_right
+            && player_top > trigger_bottom
+            && player_bottom < trigger_top
+        {
+            // Stop timer
+            timer.expired = true;
+            next_state.set(GameState::LevelComplete);
+        }
+    }
 }
 
 fn cleanup_level(

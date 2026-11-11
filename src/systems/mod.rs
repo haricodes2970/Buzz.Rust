@@ -28,7 +28,7 @@ impl Plugin for SystemsPlugin {
                 .run_if(in_state(GameState::Playing)),
         );
 
-        // Gameplay: timer, coin collection, power-up collection, enemy stomp
+        // Gameplay: timer, coin collection, power-up collection, enemy stomp, level end
         app.add_systems(
             Update,
             (
@@ -36,6 +36,7 @@ impl Plugin for SystemsPlugin {
                 gameplay::collect_coins,
                 gameplay::collect_powerup,
                 gameplay::stomp_enemy,
+                crate::game::check_level_end,
             )
                 .run_if(in_state(GameState::Playing)),
         );
