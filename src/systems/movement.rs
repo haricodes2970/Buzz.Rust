@@ -244,11 +244,28 @@ pub fn gameplay_update(
 }
 
 // --- Sync Position -> Transform for rendering ---
+// Camera entities (with CameraFollow) smooth-follow the player.
+// All other entities (Player, Goomba, platforms, coins, etc.) copy Position -> Transform.
 pub fn sync_transforms(
-    mut query: Query<(&Position, &mut Transform), Without<CameraFollow>>,
+    mut query: Query<(&Position, &mut Transform, Option<&CameraFollow>)>,
+    player_query: Query<&Position, With<Player>>,
+    time: Res<Time>,
 ) {
-    for (position, mut transform) in query.iter_mut() {
-        transform.translation.x = position.value.x;
-        transform.translation.y = position.value.y;
+    let player_pos = player_query.single().ok();
+
+    for (position, mut transform, camera) in query.iter_mut() {
+        if camera.is_some() {
+            // Camera: smooth-follow the player
+            if let Some(pp) = player_pos {
+                let rate = 8.0;
+                let dt = time.delta_secs();
+                let t = 1.0 - (-rate * dt).exp();
+                transform.translation.x = transform.translation.x.lerp(pp.value.x, t);
+                transform.translation.y = transform.translation.y.lerp(pp.value.y, t);
+            }
+        } else {
+            transform.translation.x = position.value.x;
+            transform.translation.y = position.value.y;
+        }
     }
 }

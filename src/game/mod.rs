@@ -65,6 +65,7 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
     commands.spawn((
         Camera2d,
         CameraFollow,
+        Position { value: Vec2::new(100.0, 300.0) },
         Transform::from_xyz(100.0, 300.0, 1000.0),
     ));
 
