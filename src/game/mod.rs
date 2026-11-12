@@ -53,6 +53,11 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
         Grounded::default(),
         Collider::new(24.0, 36.0),
         PowerState::default(),
+        Sprite {
+            color: Color::srgb(1.0, 0.0, 0.0),
+            custom_size: Some(Vec2::new(24.0, 36.0)),
+            ..default()
+        },
         Name::new("Player"),
     ));
 

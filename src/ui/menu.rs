@@ -8,7 +8,7 @@ pub const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
 
 pub fn setup_main_menu(mut commands: Commands) {
     // Camera for UI
-    commands.spawn(Camera2d);
+    commands.spawn((Camera2d, MainMenuEntity));
 
     // Title text
     commands.spawn((
@@ -75,7 +75,7 @@ pub fn cleanup_main_menu(mut commands: Commands, query: Query<Entity, With<MainM
 pub struct GameOverEntity;
 
 pub fn setup_game_over(mut commands: Commands) {
-    commands.spawn(Camera2d);
+    commands.spawn((Camera2d, GameOverEntity));
     commands.spawn((
         GameOverEntity,
         Text::new("GAME OVER"),
@@ -120,7 +120,7 @@ pub fn cleanup_game_over(mut commands: Commands, query: Query<Entity, With<GameO
 pub struct LevelCompleteEntity;
 
 pub fn setup_level_complete(mut commands: Commands) {
-    commands.spawn(Camera2d);
+    commands.spawn((Camera2d, LevelCompleteEntity));
     commands.spawn((
         LevelCompleteEntity,
         Text::new("LEVEL COMPLETE!"),
@@ -168,7 +168,7 @@ pub fn cleanup_level_complete(
 pub struct PauseEntity;
 
 pub fn setup_pause(mut commands: Commands) {
-    commands.spawn(Camera2d);
+    commands.spawn((Camera2d, PauseEntity));
     commands.spawn((
         PauseEntity,
         Text::new("PAUSED"),
