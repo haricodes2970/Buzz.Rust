@@ -1,4 +1,3 @@
-use bevy::audio::{AudioPlayer, AudioSource};
 use bevy::prelude::*;
 use crate::game::components::*;
 use crate::game::resources::*;
@@ -47,19 +46,19 @@ pub fn update_timer(
 pub fn collect_coins(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    player_query: Query<(&Transform, &Collider), With<Player>>,
+    player_query: Query<(&Position, &Collider), With<Player>>,
     coin_query: Query<(Entity, &Transform, &Collider), With<Coin>>,
     mut score: ResMut<Score>,
     mut coins: ResMut<Coins>,
 ) {
-    let Ok((player_transform, player_collider)) = player_query.single() else {
+    let Ok((player_position, player_collider)) = player_query.single() else {
         return;
     };
 
-    let player_bottom = player_transform.translation.y - player_collider.size.y / 2.0;
-    let player_top = player_transform.translation.y + player_collider.size.y / 2.0;
-    let player_left = player_transform.translation.x - player_collider.size.x / 2.0;
-    let player_right = player_transform.translation.x + player_collider.size.x / 2.0;
+    let player_bottom = player_position.value.y - player_collider.size.y / 2.0;
+    let player_top = player_position.value.y + player_collider.size.y / 2.0;
+    let player_left = player_position.value.x - player_collider.size.x / 2.0;
+    let player_right = player_position.value.x + player_collider.size.x / 2.0;
 
     for (entity, coin_transform, coin_collider) in coin_query.iter() {
         let coin_bottom = coin_transform.translation.y - coin_collider.size.y / 2.0;
@@ -87,18 +86,18 @@ pub fn collect_coins(
 pub fn collect_powerup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut player_query: Query<(&mut Transform, &mut Collider, &mut PowerState), With<Player>>,
+    mut player_query: Query<(&mut Position, &mut Collider, &mut PowerState), With<Player>>,
     powerup_query: Query<(Entity, &Transform, &Collider, &PowerUpType)>,
     mut power_up_state: ResMut<PowerUpState>,
     mut score: ResMut<Score>,
 ) {
-    if let Ok((mut player_transform, mut player_collider, mut player_power)) =
+    if let Ok((mut player_position, mut player_collider, mut player_power)) =
         player_query.single_mut()
     {
-        let player_bottom = player_transform.translation.y - player_collider.size.y / 2.0;
-        let player_top = player_transform.translation.y + player_collider.size.y / 2.0;
-        let player_left = player_transform.translation.x - player_collider.size.x / 2.0;
-        let player_right = player_transform.translation.x + player_collider.size.x / 2.0;
+        let player_bottom = player_position.value.y - player_collider.size.y / 2.0;
+        let player_top = player_position.value.y + player_collider.size.y / 2.0;
+        let player_left = player_position.value.x - player_collider.size.x / 2.0;
+        let player_right = player_position.value.x + player_collider.size.x / 2.0;
 
         for (entity, pu_transform, pu_collider, pu_type) in powerup_query.iter() {
             let pu_bottom = pu_transform.translation.y - pu_collider.size.y / 2.0;
@@ -153,11 +152,11 @@ pub fn collect_powerup(
 pub fn stomp_enemy(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut player_query: Query<(&mut Velocity, &Transform, &Collider), With<Player>>,
+    mut player_query: Query<(&mut Velocity, &Position, &Collider), With<Player>>,
     enemy_query: Query<(Entity, &Transform, &Collider), (With<Enemy>, With<Stompable>)>,
     mut score: ResMut<Score>,
 ) {
-    let Ok((mut velocity, player_transform, player_collider)) = player_query.single_mut() else {
+    let Ok((mut velocity, player_position, player_collider)) = player_query.single_mut() else {
         return;
     };
 
@@ -166,9 +165,9 @@ pub fn stomp_enemy(
         return;
     }
 
-    let player_bottom = player_transform.translation.y - player_collider.size.y / 2.0;
-    let player_left = player_transform.translation.x - player_collider.size.x / 2.0;
-    let player_right = player_transform.translation.x + player_collider.size.x / 2.0;
+    let player_bottom = player_position.value.y - player_collider.size.y / 2.0;
+    let player_left = player_position.value.x - player_collider.size.x / 2.0;
+    let player_right = player_position.value.x + player_collider.size.x / 2.0;
 
     for (entity, enemy_transform, enemy_collider) in enemy_query.iter() {
         let enemy_top = enemy_transform.translation.y + enemy_collider.size.y / 2.0;
@@ -188,6 +187,47 @@ pub fn stomp_enemy(
                 AudioPlayer::<AudioSource>(asset_server.load("audio/stomp.wav")),
                 PlaybackSettings::DESPAWN,
             ));
+        }
+    }
+}
+
+// --- Level End Detection ---
+
+pub fn check_level_end(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    player_query: Query<(&Position, &Collider), With<Player>>,
+    trigger_query: Query<&Transform, (With<Name>, Without<Player>)>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut timer: ResMut<TimerResource>,
+) {
+    let Ok((player_position, player_collider)) = player_query.single() else {
+        return;
+    };
+
+    let player_bottom = player_position.value.y - player_collider.size.y / 2.0;
+    let player_top = player_position.value.y + player_collider.size.y / 2.0;
+    let player_left = player_position.value.x - player_collider.size.x / 2.0;
+    let player_right = player_position.value.x + player_collider.size.x / 2.0;
+
+    for trigger_transform in trigger_query.iter() {
+        // Only check the level end trigger (named "LevelEndTrigger")
+        if trigger_transform.translation.x < 1400.0 {
+            continue;
+        }
+
+        let trigger_left = trigger_transform.translation.x - 20.0;
+        let trigger_right = trigger_transform.translation.x + 20.0;
+        let trigger_top = trigger_transform.translation.y + 200.0;
+        let trigger_bottom = trigger_transform.translation.y - 200.0;
+
+        if player_right > trigger_left
+            && player_left < trigger_right
+            && player_top > trigger_bottom
+            && player_bottom < trigger_top
+        {
+            timer.expired = true;
+            next_state.set(GameState::LevelComplete);
         }
     }
 }

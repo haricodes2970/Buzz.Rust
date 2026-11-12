@@ -8,9 +8,9 @@ pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        // HUD
+        // HUD — setup/cleanup only. Text is set once at setup; no dynamic updates
+        // to avoid B0001 conflicts with Bevy's text system (which reads &Text).
         app.add_systems(OnEnter(GameState::Playing), hud::setup_hud)
-            .add_systems(OnExit(GameState::Playing), hud::cleanup_hud)
-            .add_systems(Update, hud::update_hud.run_if(in_state(GameState::Playing)));
+            .add_systems(OnExit(GameState::Playing), hud::cleanup_hud);
     }
 }

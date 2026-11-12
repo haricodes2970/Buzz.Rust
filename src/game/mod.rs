@@ -48,16 +48,11 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
     // Spawn player
     commands.spawn((
         Player,
-        PowerState::default(),
+        Position { value: Vec2::new(100.0, 300.0) },
         Velocity::default(),
         Grounded::default(),
         Collider::new(24.0, 36.0),
-        Transform::from_xyz(100.0, 300.0, 0.0),
-        Sprite {
-            color: Color::srgb(1.0, 0.0, 0.0),
-            custom_size: Some(Vec2::new(24.0, 36.0)),
-            ..default()
-        },
+        PowerState::default(),
         Name::new("Player"),
     ));
 
@@ -152,11 +147,11 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
         LevelEntities,
         Enemy,
         Goomba,
+        Position { value: Vec2::new(900.0, 376.0) },
         EnemyAI::new(700.0, 1000.0, 60.0),
         Stompable,
         Velocity::default(),
         Collider::new(24.0, 24.0),
-        Transform::from_xyz(900.0, 376.0, 0.0),
         Sprite {
             color: Color::srgb(0.8, 0.3, 0.1),
             custom_size: Some(Vec2::new(24.0, 24.0)),
@@ -198,53 +193,6 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
         Transform::from_xyz(1420.0, 300.0, 0.0),
         Name::new("LevelEndTrigger"),
     ));
-}
-
-// Level end detection
-pub fn check_level_end(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    player_query: Query<(&Transform, &Collider), With<Player>>,
-    trigger_query: Query<&Transform, (With<Name>, Without<Player>)>,
-    mut next_state: ResMut<NextState<GameState>>,
-    mut timer: ResMut<TimerResource>,
-) {
-    let Ok((player_transform, player_collider)) = player_query.single() else {
-        return;
-    };
-
-    let player_bottom = player_transform.translation.y - player_collider.size.y / 2.0;
-    let player_top = player_transform.translation.y + player_collider.size.y / 2.0;
-    let player_left = player_transform.translation.x - player_collider.size.x / 2.0;
-    let player_right = player_transform.translation.x + player_collider.size.x / 2.0;
-
-    for trigger_transform in trigger_query.iter() {
-        let trigger = trigger_transform;
-        // Only check the level end trigger (named "LevelEndTrigger")
-        // We check by position - trigger is at x=1420
-        if trigger.translation.x < 1400.0 {
-            continue;
-        }
-
-        let trigger_left = trigger.translation.x - 20.0;
-        let trigger_right = trigger.translation.x + 20.0;
-        let trigger_top = trigger.translation.y + 200.0;
-        let trigger_bottom = trigger.translation.y - 200.0;
-
-        if player_right > trigger_left
-            && player_left < trigger_right
-            && player_top > trigger_bottom
-            && player_bottom < trigger_top
-        {
-            // Stop timer
-            timer.expired = true;
-            commands.spawn((
-                AudioPlayer::<AudioSource>(asset_server.load("audio/level_complete.wav")),
-                PlaybackSettings::DESPAWN,
-            ));
-            next_state.set(GameState::LevelComplete);
-        }
-    }
 }
 
 fn cleanup_level(

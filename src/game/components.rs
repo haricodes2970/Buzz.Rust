@@ -6,6 +6,17 @@ use bevy::prelude::*;
 pub struct Player;
 
 #[derive(Component)]
+pub struct Position {
+    pub value: Vec2,
+}
+
+impl Default for Position {
+    fn default() -> Self {
+        Self { value: Vec2::ZERO }
+    }
+}
+
+#[derive(Component)]
 pub struct Velocity {
     pub value: Vec2,
 }

@@ -3,15 +3,19 @@ use crate::game::components::*;
 
 pub fn camera_follow(
     mut camera_query: Query<(&mut Transform, &CameraFollow), Without<Player>>,
-    player_query: Query<&Transform, With<Player>>,
+    player_query: Query<&Position, With<Player>>,
     time: Res<Time>,
 ) {
-    let Ok(player_transform) = player_query.single() else {
+    let Ok(player_position) = player_query.single() else {
         return;
     };
 
     for (mut camera_transform, _) in camera_query.iter_mut() {
-        let target_position = player_transform.translation;
+        let target_position = Vec3::new(
+            player_position.value.x,
+            player_position.value.y,
+            camera_transform.translation.z,
+        );
         let current_position = camera_transform.translation;
 
         // Exponential smoothing: frame-rate independent
@@ -21,8 +25,7 @@ pub fn camera_follow(
         let mut new_position = current_position.lerp(target_position, t);
         new_position.z = current_position.z; // Keep camera Z
 
-        // Clamp camera to level bounds (keep player centered within bounds)
-        // Level bounds: -1600 to +1600 X, -400 to +400 Y approximately
+        // Clamp camera to level bounds
         let view_width = 1280.0 / 2.0;
         let view_height = 720.0 / 2.0;
         let level_left = -1600.0 + view_width;

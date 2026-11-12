@@ -1,54 +1,29 @@
-pub mod input;
 pub mod movement;
-pub mod physics;
-pub mod camera;
-pub mod enemy;
-pub mod audio;
-pub mod gameplay;
 
 use bevy::prelude::*;
+use bevy_transform::TransformSystems;
 use crate::GameState;
 
 pub struct SystemsPlugin;
 
 impl Plugin for SystemsPlugin {
     fn build(&self, app: &mut App) {
-        // Input (handles menu + gameplay)
-        app.add_systems(Update, input::handle_input);
+        // Menu/pause input — no Player component queries, runs independently
+        app.add_systems(Update, movement::handle_input);
 
-        // Movement & physics
+        // Single unified gameplay system — all Player-touching logic in one system
+        // to avoid Bevy 0.20 B0001 query conflicts. Uses Position (custom component)
+        // instead of Transform for the player.
         app.add_systems(
             Update,
-            (
-                movement::apply_gravity,
-                movement::apply_movement,
-                movement::resolve_collisions,
-            )
-                .chain()
-                .run_if(in_state(GameState::Playing)),
+            movement::gameplay_update.run_if(in_state(GameState::Playing)),
         );
 
-        // Gameplay: timer, coin collection, power-up collection, enemy stomp, level end
+        // Sync Position -> Transform for rendering. Runs in PostUpdate, before
+        // TransformPropagateSystem, so Bevy's renderer sees updated Transform values.
         app.add_systems(
-            Update,
-            (
-                gameplay::update_timer,
-                gameplay::collect_coins,
-                gameplay::collect_powerup,
-                gameplay::stomp_enemy,
-                crate::game::check_level_end,
-            )
-                .run_if(in_state(GameState::Playing)),
+            PostUpdate,
+            movement::sync_transforms.before(TransformSystems::Propagate),
         );
-
-        // Camera
-        app.add_systems(
-            Update,
-            camera::camera_follow.run_if(in_state(GameState::Playing)),
-        );
-
-        // Enemy AI
-        app.add_systems(Update, enemy::enemy_ai.run_if(in_state(GameState::Playing)));
-
     }
 }
