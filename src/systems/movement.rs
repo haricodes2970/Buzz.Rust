@@ -1,4 +1,6 @@
+use bevy::audio::{AudioPlayer, AudioSource};
 use bevy::prelude::*;
+use crate::assets::{AnimationTimer, GameAssets};
 use crate::game::components::*;
 use crate::game::resources::*;
 use crate::GameState;
@@ -6,8 +8,6 @@ use crate::GameState;
 fn lerp(current: f32, target: f32, factor: f32) -> f32 {
     current + (target - current) * factor.clamp(0.0, 1.0)
 }
-
-// --- Input: menu + pause (no Player component queries) ---
 
 pub fn handle_input(
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -21,7 +21,7 @@ pub fn handle_input(
             }
         }
         GameState::Playing | GameState::Paused => {
-            if keyboard.just_pressed(KeyCode::Escape) {
+            if keyboard.just_pressed(KeyCode::Escape) || keyboard.just_pressed(KeyCode::Enter) {
                 match current_state.get() {
                     GameState::Playing => next_state.set(GameState::Paused),
                     GameState::Paused => next_state.set(GameState::Playing),
@@ -33,7 +33,6 @@ pub fn handle_input(
     }
 }
 
-// --- Single unified gameplay system ---
 pub fn gameplay_update(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut player_query: Query<(
@@ -42,6 +41,8 @@ pub fn gameplay_update(
         &mut Grounded,
         &mut Collider,
         &mut PowerState,
+        &mut AnimationTimer,
+        &mut Sprite,
     ),
     With<Player>,
 >,
@@ -64,6 +65,8 @@ pub fn gameplay_update(
     mut timer: ResMut<TimerResource>,
     time: Res<Time>,
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    assets: Res<GameAssets>,
     mut goomba_query: Query<(&mut Position, &mut Velocity, &mut EnemyAI), (With<Goomba>, Without<CameraFollow>, Without<Player>)>,
 ) {
     let Ok((
@@ -71,7 +74,9 @@ pub fn gameplay_update(
         mut velocity,
         mut grounded,
         mut collider,
-        mut player_power,
+        mut power_state,
+        mut anim,
+        mut sprite,
     )) = player_query.single_mut()
     else {
         return;
@@ -97,13 +102,17 @@ pub fn gameplay_update(
     velocity.value.x = lerp(velocity.value.x, target_velocity, accel * time.delta_secs());
 
     // Jump
-    if keyboard.just_pressed(KeyCode::Space) || keyboard.just_pressed(KeyCode::KeyW) {
+    if keyboard.just_pressed(KeyCode::Space) || keyboard.just_pressed(KeyCode::KeyW) || keyboard.just_pressed(KeyCode::ArrowUp) {
         velocity.value.y = -500.0;
         grounded.value = false;
+        commands.spawn((
+            AudioPlayer::<AudioSource>(asset_server.load("audio/jump.wav")),
+            PlaybackSettings::DESPAWN,
+        ));
     }
 
     // Variable jump height
-    if (keyboard.just_released(KeyCode::Space) || keyboard.just_released(KeyCode::KeyW))
+    if (keyboard.just_released(KeyCode::Space) || keyboard.just_released(KeyCode::KeyW) || keyboard.just_released(KeyCode::ArrowUp))
         && velocity.value.y < 0.0
     {
         velocity.value.y *= 0.5;
@@ -122,16 +131,48 @@ pub fn gameplay_update(
     }
 
     // === MOVEMENT ===
-    position.value += velocity.value * time.delta_secs();
+    position.value.x += velocity.value.x * time.delta_secs();
+    position.value.y += velocity.value.y * time.delta_secs();
 
-    // Recalculate bounds after movement
+    // === ANIMATION ===
+    anim.timer.tick(time.delta());
+    if anim.timer.just_finished() {
+        anim.current = (anim.current + 1) % anim.frames.len();
+    }
+
+    // Determine which animation set to use
+    let frame_set = if !grounded.value {
+        // In air - use jump frame
+        if anim.frames.len() > 2 {
+            &anim.frames[2] // jump frame
+        } else {
+            &anim.frames[anim.current % anim.frames.len()]
+        }
+    } else if axis.abs() > 0.01 {
+        // Running
+        &anim.frames[anim.current % anim.frames.len()]
+    } else {
+        // Idle - use first frame
+        &anim.frames[0]
+    };
+
+    // Update sprite image
+    sprite.image = frame_set.clone();
+
+    // Flip sprite based on direction
+    if axis < -0.01 {
+        sprite.flip_x = true;
+    } else if axis > 0.01 {
+        sprite.flip_x = false;
+    }
+
+    // === COLLISIONS ===
+    grounded.value = false;
+
     let player_bottom = position.value.y - collider.size.y / 2.0;
     let player_top = position.value.y + collider.size.y / 2.0;
     let player_left = position.value.x - collider.size.x / 2.0;
     let player_right = position.value.x + collider.size.x / 2.0;
-
-    // === COLLISIONS + INTERACTIONS ===
-    grounded.value = false;
 
     for (entity, col_transform, col_collider, coin, power_up, enemy, stompable) in
         collidable_query.iter()
@@ -148,7 +189,7 @@ pub fn gameplay_update(
             continue;
         }
 
-        // Platform collision (no Coin/PowerUp/Enemy markers)
+        // Platform collision
         if coin.is_none() && power_up.is_none() && enemy.is_none() {
             if velocity.value.y > 0.0 && player_bottom <= col_top + 2.0 {
                 position.value.y = col_top + collider.size.y / 2.0 + 0.1;
@@ -174,18 +215,22 @@ pub fn gameplay_update(
             commands.entity(entity).despawn();
             score.value += 10;
             coins.value += 1;
+            commands.spawn((
+                AudioPlayer::<AudioSource>(asset_server.load("audio/coin.wav")),
+                PlaybackSettings::DESPAWN,
+            ));
         }
 
         // Power-up collection
         if let Some(pu_type) = power_up {
             match pu_type {
-                PowerUpType::SuperMushroom => *player_power = PowerState::Super,
-                PowerUpType::FireFlower => *player_power = PowerState::Fire,
-                PowerUpType::Starman => *player_power = PowerState::Starman,
-                PowerUpType::OneUp => *player_power = PowerState::Super,
+                PowerUpType::SuperMushroom => *power_state = PowerState::Super,
+                PowerUpType::FireFlower => *power_state = PowerState::Fire,
+                PowerUpType::Starman => *power_state = PowerState::Starman,
+                PowerUpType::OneUp => *power_state = PowerState::Super,
             }
 
-            match *player_power {
+            match *power_state {
                 PowerState::Super => collider.size = Vec2::new(24.0, 52.0),
                 PowerState::Small => collider.size = Vec2::new(24.0, 36.0),
                 _ => {}
@@ -193,6 +238,10 @@ pub fn gameplay_update(
 
             score.value += 50;
             commands.entity(entity).despawn();
+            commands.spawn((
+                AudioPlayer::<AudioSource>(asset_server.load("audio/powerup.wav")),
+                PlaybackSettings::DESPAWN,
+            ));
         }
 
         // Enemy stomp
@@ -205,6 +254,10 @@ pub fn gameplay_update(
             commands.entity(entity).despawn();
             velocity.value.y = -300.0;
             score.value += 100;
+            commands.spawn((
+                AudioPlayer::<AudioSource>(asset_server.load("audio/stomp.wav")),
+                PlaybackSettings::DESPAWN,
+            ));
         }
     }
 
@@ -220,6 +273,10 @@ pub fn gameplay_update(
             }
 
             if lives.value == 0 {
+                commands.spawn((
+                    AudioPlayer::<AudioSource>(asset_server.load("audio/death.wav")),
+                    PlaybackSettings::DESPAWN,
+                ));
                 next_state.set(GameState::GameOver);
             } else {
                 timer.seconds = timer.time_limit;
@@ -244,8 +301,6 @@ pub fn gameplay_update(
 }
 
 // --- Sync Position -> Transform for rendering ---
-// Camera entities (with CameraFollow) smooth-follow the player.
-// All other entities (Player, Goomba, platforms, coins, etc.) copy Position -> Transform.
 pub fn sync_transforms(
     mut query: Query<(&Position, &mut Transform, Option<&CameraFollow>)>,
     player_query: Query<&Position, With<Player>>,

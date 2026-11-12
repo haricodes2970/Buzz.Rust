@@ -1,8 +1,10 @@
+mod assets;
 mod game;
 mod systems;
 mod ui;
 mod levels;
 
+use assets::{GameAssets, load_assets};
 use bevy::prelude::*;
 use game::GamePlugin;
 use systems::SystemsPlugin;
@@ -20,6 +22,8 @@ fn main() {
             ..default()
         }))
         .init_state::<GameState>()
+        .init_resource::<GameAssets>()
+        .add_systems(Startup, load_assets)
         .add_plugins(GamePlugin)
         .add_plugins(SystemsPlugin)
         .add_plugins(UiPlugin)

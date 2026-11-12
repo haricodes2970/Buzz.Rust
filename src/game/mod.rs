@@ -3,6 +3,7 @@ pub mod resources;
 
 use bevy::audio::{AudioPlayer, AudioSource};
 use bevy::prelude::*;
+use crate::assets::{AnimationTimer, GameAssets};
 use crate::game::components::*;
 use crate::game::resources::*;
 use crate::GameState;
@@ -44,18 +45,22 @@ pub struct MainMenuEntity;
 #[derive(Component)]
 pub struct LevelEntities;
 
-fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
-    // Spawn player
+fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<GameAssets>) {
+    // Spawn player with Kenney sprite
     commands.spawn((
         Player,
         Position { value: Vec2::new(100.0, 300.0) },
         Velocity::default(),
         Grounded::default(),
-        Collider::new(24.0, 36.0),
+        Collider::new(20.0, 28.0),
         PowerState::default(),
+        AnimationTimer::new(
+            assets.player_idle.clone(),
+            10.0,
+            true,
+        ),
         Sprite {
-            color: Color::srgb(1.0, 0.0, 0.0),
-            custom_size: Some(Vec2::new(24.0, 36.0)),
+            image: assets.player_idle[0].clone(),
             ..default()
         },
         Name::new("Player"),
@@ -69,26 +74,27 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
         Transform::from_xyz(100.0, 300.0, 1000.0),
     ));
 
-    // Spawn some platforms (ground)
-    commands.spawn((
-        LevelEntities,
-        Collider::new(600.0, 40.0),
-        Transform::from_xyz(400.0, 400.0, 0.0),
-        Sprite {
-            color: Color::srgb(0.2, 0.6, 0.2),
-            custom_size: Some(Vec2::new(600.0, 40.0)),
-            ..default()
-        },
-        Name::new("Ground"),
-    ));
+    // Spawn ground platforms using Kenney tiles
+    for x in 0..160 {
+        commands.spawn((
+            LevelEntities,
+            Collider::new(18.0, 18.0),
+            Transform::from_xyz(x as f32 * 18.0 + 9.0, 400.0, 0.0),
+            Sprite {
+                image: assets.ground_tile.clone(),
+                ..default()
+            },
+            Name::new("Ground"),
+        ));
+    }
 
+    // Some platforms
     commands.spawn((
         LevelEntities,
-        Collider::new(200.0, 20.0),
-        Transform::from_xyz(800.0, 300.0, 0.0),
+        Collider::new(18.0 * 4.0, 18.0),
+        Transform::from_xyz(400.0, 300.0, 0.0),
         Sprite {
-            color: Color::srgb(0.2, 0.6, 0.2),
-            custom_size: Some(Vec2::new(200.0, 20.0)),
+            image: assets.ground_tile.clone(),
             ..default()
         },
         Name::new("Platform"),
@@ -96,25 +102,35 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
 
     commands.spawn((
         LevelEntities,
-        Collider::new(200.0, 20.0),
-        Transform::from_xyz(1100.0, 250.0, 0.0),
+        Collider::new(18.0 * 3.0, 18.0),
+        Transform::from_xyz(700.0, 240.0, 0.0),
         Sprite {
-            color: Color::srgb(0.2, 0.6, 0.2),
-            custom_size: Some(Vec2::new(200.0, 20.0)),
+            image: assets.ground_tile.clone(),
             ..default()
         },
         Name::new("Platform2"),
     ));
 
-    // Spawn some coins
+    commands.spawn((
+        LevelEntities,
+        Collider::new(18.0 * 4.0, 18.0),
+        Transform::from_xyz(1000.0, 180.0, 0.0),
+        Sprite {
+            image: assets.ground_tile.clone(),
+            ..default()
+        },
+        Name::new("Platform3"),
+    ));
+
+    // Spawn coins
     commands.spawn((
         LevelEntities,
         Coin,
         Collectable::new(10),
-        Transform::from_xyz(850.0, 270.0, 0.0),
+        Position { value: Vec2::new(420.0, 270.0) },
+        Collider::new(12.0, 12.0),
         Sprite {
-            color: Color::srgb(1.0, 0.8, 0.0),
-            custom_size: Some(Vec2::new(16.0, 16.0)),
+            image: assets.coin[0].clone(),
             ..default()
         },
         Name::new("Coin"),
@@ -124,10 +140,10 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
         LevelEntities,
         Coin,
         Collectable::new(10),
-        Transform::from_xyz(870.0, 270.0, 0.0),
+        Position { value: Vec2::new(440.0, 270.0) },
+        Collider::new(12.0, 12.0),
         Sprite {
-            color: Color::srgb(1.0, 0.8, 0.0),
-            custom_size: Some(Vec2::new(16.0, 16.0)),
+            image: assets.coin[1].clone(),
             ..default()
         },
         Name::new("Coin2"),
@@ -139,10 +155,10 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
         PowerUp,
         SuperMushroom,
         PowerUpType::SuperMushroom,
-        Transform::from_xyz(1150.0, 230.0, 0.0),
+        Position { value: Vec2::new(720.0, 220.0) },
+        Collider::new(18.0, 18.0),
         Sprite {
-            color: Color::srgb(1.0, 0.0, 0.0),
-            custom_size: Some(Vec2::new(24.0, 24.0)),
+            image: assets.super_mushroom.clone(),
             ..default()
         },
         Name::new("SuperMushroom"),
@@ -157,10 +173,14 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
         EnemyAI::new(700.0, 1000.0, 60.0),
         Stompable,
         Velocity::default(),
-        Collider::new(24.0, 24.0),
+        Collider::new(20.0, 20.0),
+        AnimationTimer::new(
+            assets.goomba.clone(),
+            8.0,
+            true,
+        ),
         Sprite {
-            color: Color::srgb(0.8, 0.3, 0.1),
-            custom_size: Some(Vec2::new(24.0, 24.0)),
+            image: assets.goomba[0].clone(),
             ..default()
         },
         Name::new("Goomba"),
@@ -170,10 +190,10 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
     commands.spawn((
         LevelEntities,
         Flagpole,
-        Transform::from_xyz(1400.0, 200.0, 0.0),
+        Position { value: Vec2::new(1400.0, 200.0) },
+        Collider::new(10.0, 200.0),
         Sprite {
-            color: Color::srgb(1.0, 0.0, 0.0),
-            custom_size: Some(Vec2::new(10.0, 200.0)),
+            image: assets.flag_pole.clone(),
             ..default()
         },
         Name::new("Flagpole"),
@@ -183,10 +203,10 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>) {
     commands.spawn((
         LevelEntities,
         Flag,
-        Transform::from_xyz(1405.0, 310.0, 0.0),
+        Position { value: Vec2::new(1405.0, 310.0) },
+        Collider::new(30.0, 20.0),
         Sprite {
-            color: Color::srgb(1.0, 1.0, 0.0),
-            custom_size: Some(Vec2::new(30.0, 20.0)),
+            image: assets.flag.clone(),
             ..default()
         },
         Name::new("Flag"),
