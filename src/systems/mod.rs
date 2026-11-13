@@ -13,8 +13,8 @@ pub struct SystemsPlugin;
 
 impl Plugin for SystemsPlugin {
     fn build(&self, app: &mut App) {
-        // Menu/pause input — no component queries, runs independently
-        app.add_systems(Update, input::handle_input);
+        // Menu/pause input — handles SPACE to start, ESC to pause/unpause
+        app.add_systems(Update, movement::handle_input);
 
         // Single unified gameplay system — all Player-touching logic in one system
         // to avoid Bevy 0.20 B0001 query conflicts.
