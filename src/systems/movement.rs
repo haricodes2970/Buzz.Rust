@@ -100,11 +100,13 @@ pub fn gameplay_update(
 
     // Jump
     if keyboard.just_pressed(KeyCode::Space) || keyboard.just_pressed(KeyCode::KeyW) || keyboard.just_pressed(KeyCode::ArrowUp) {
-        velocity.value.y = -500.0;
-        grounded.value = false;
+        if grounded.value {
+            velocity.value.y = -500.0;
+            grounded.value = false;
+        }
     }
 
-    // Variable jump height
+    // Variable jump height - release early = shorter jump
     if (keyboard.just_released(KeyCode::Space) || keyboard.just_released(KeyCode::KeyW) || keyboard.just_released(KeyCode::ArrowUp))
         && velocity.value.y < 0.0
     {
@@ -115,7 +117,7 @@ pub fn gameplay_update(
     if !grounded.value {
         let mut gravity = 1500.0;
         if velocity.value.y > 0.0 {
-            gravity *= 1.8;
+            gravity *= 1.8; // fall faster than rise
         }
         velocity.value.y += gravity * time.delta_secs();
         if velocity.value.y > 600.0 {
@@ -133,23 +135,19 @@ pub fn gameplay_update(
         anim.current = (anim.current + 1) % anim.frames.len();
     }
 
-    // Determine which animation set to use
+    // Determine animation frame
     let frame_set = if !grounded.value {
-        // In air - use jump frame
         if anim.frames.len() > 2 {
             &anim.frames[2] // jump frame
         } else {
             &anim.frames[anim.current % anim.frames.len()]
         }
     } else if axis.abs() > 0.01 {
-        // Running
-        &anim.frames[anim.current % anim.frames.len()]
+        &anim.frames[anim.current % anim.frames.len()] // running
     } else {
-        // Idle - use first frame
-        &anim.frames[0]
+        &anim.frames[0] // idle
     };
 
-    // Update sprite image
     sprite.image = frame_set.clone();
 
     // Flip sprite based on direction
@@ -160,18 +158,21 @@ pub fn gameplay_update(
     }
 
     // === COLLISIONS ===
+    // Bevy 2D: Y increases DOWNWARD
+    // Top of object = y - size.y/2
+    // Bottom of object = y + size.y/2
     grounded.value = false;
 
-    let player_bottom = position.value.y - collider.size.y / 2.0;
-    let player_top = position.value.y + collider.size.y / 2.0;
-    let player_left = position.value.x - collider.size.x / 2.0;
-    let player_right = position.value.x + collider.size.x / 2.0;
+    let player_bottom = position.value.y + collider.size.y / 2.0;  // bottom edge
+    let player_top = position.value.y - collider.size.y / 2.0;     // top edge
+    let player_left = position.value.x - collider.size.x / 2.0;    // left edge
+    let player_right = position.value.x + collider.size.x / 2.0;   // right edge
 
     for (entity, col_transform, col_collider, coin, power_up, enemy, stompable) in
         collidable_query.iter()
     {
-        let col_bottom = col_transform.translation.y - col_collider.size.y / 2.0;
-        let col_top = col_transform.translation.y + col_collider.size.y / 2.0;
+        let col_bottom = col_transform.translation.y + col_collider.size.y / 2.0;
+        let col_top = col_transform.translation.y - col_collider.size.y / 2.0;
         let col_left = col_transform.translation.x - col_collider.size.x / 2.0;
         let col_right = col_transform.translation.x + col_collider.size.x / 2.0;
 
@@ -182,23 +183,41 @@ pub fn gameplay_update(
             continue;
         }
 
-        // Platform collision
+        // Platform collision (non-collectible, non-enemy)
         if coin.is_none() && power_up.is_none() && enemy.is_none() {
-            if velocity.value.y > 0.0 && player_bottom <= col_top + 2.0 {
-                position.value.y = col_top + collider.size.y / 2.0 + 0.1;
-                velocity.value.y = 0.0;
-                grounded.value = true;
-            } else if velocity.value.y < 0.0 && player_top >= col_bottom - 2.0 {
-                position.value.y = col_bottom - collider.size.y / 2.0 - 0.1;
-                velocity.value.y = 0.0;
-            }
+            // Calculate which side we hit based on overlap
+            // We resolve along the axis of least overlap
 
-            if velocity.value.x > 0.0 && player_right <= col_left + 2.0 {
-                position.value.x = col_left - collider.size.x / 2.0 - 0.1;
+            // Check if we hit from above (falling onto platform)
+            let from_above = player_bottom - col_top;
+            let from_below = col_bottom - player_top;
+            let from_left = player_right - col_left;
+            let from_right = col_right - player_left;
+
+            let min_overlap = overlap_x.min(overlap_y);
+
+            if min_overlap == overlap_x {
+                // Horizontal collision - hit from left or right
+                if from_left < from_right {
+                    // Hit left side of platform
+                    position.value.x = col_left - collider.size.x / 2.0 - 0.1;
+                } else {
+                    // Hit right side of platform
+                    position.value.x = col_right + collider.size.x / 2.0 + 0.1;
+                }
                 velocity.value.x = 0.0;
-            } else if velocity.value.x < 0.0 && player_left >= col_right - 2.0 {
-                position.value.x = col_right + collider.size.x / 2.0 + 0.1;
-                velocity.value.x = 0.0;
+            } else {
+                // Vertical collision - hit from top or bottom
+                if from_above < from_below {
+                    // Hit from above (landing on platform)
+                    position.value.y = col_top - collider.size.y / 2.0 - 0.1;
+                    velocity.value.y = 0.0;
+                    grounded.value = true;
+                } else {
+                    // Hit from below (hit head on platform)
+                    position.value.y = col_bottom + collider.size.y / 2.0 + 0.1;
+                    velocity.value.y = 0.0;
+                }
             }
             continue;
         }

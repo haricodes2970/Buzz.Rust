@@ -45,13 +45,14 @@ pub struct MainMenuEntity;
 pub struct LevelEntities;
 
 fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<GameAssets>) {
-    // Spawn player with Kenney sprite
+    // Spawn player with Kenney sprite - start ON the ground (y=400, so player bottom at 400)
+    // Player center = ground_y - collider_height/2 = 400 - 14 = 386
     let player_img = assets.player_idle.first().cloned().unwrap_or_default();
     commands.spawn((
         Player,
-        Position { value: Vec2::new(100.0, 300.0) },
+        Position { value: Vec2::new(100.0, 386.0) },
         Velocity::default(),
-        Grounded::default(),
+        Grounded::default(),  // Start on ground
         Collider::new(20.0, 28.0),
         PowerState::default(),
         AnimationTimer::new(
@@ -70,8 +71,8 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<Gam
     commands.spawn((
         Camera2d,
         CameraFollow,
-        Position { value: Vec2::new(100.0, 300.0) },
-        Transform::from_xyz(100.0, 300.0, 1000.0),
+        Position { value: Vec2::new(100.0, 386.0) },
+        Transform::from_xyz(100.0, 386.0, 1000.0),
     ));
 
     // Spawn ground platforms using Kenney tiles
