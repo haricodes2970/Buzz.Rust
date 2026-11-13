@@ -1,4 +1,3 @@
-use bevy::audio::{AudioPlayer, AudioSource};
 use bevy::prelude::*;
 use crate::assets::{AnimationTimer, GameAssets};
 use crate::game::components::*;
@@ -65,8 +64,6 @@ pub fn gameplay_update(
     mut timer: ResMut<TimerResource>,
     time: Res<Time>,
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    assets: Res<GameAssets>,
     mut goomba_query: Query<(&mut Position, &mut Velocity, &mut EnemyAI), (With<Goomba>, Without<CameraFollow>, Without<Player>)>,
 ) {
     let Ok((
@@ -105,10 +102,6 @@ pub fn gameplay_update(
     if keyboard.just_pressed(KeyCode::Space) || keyboard.just_pressed(KeyCode::KeyW) || keyboard.just_pressed(KeyCode::ArrowUp) {
         velocity.value.y = -500.0;
         grounded.value = false;
-        commands.spawn((
-            AudioPlayer::<AudioSource>(asset_server.load("audio/jump.wav")),
-            PlaybackSettings::DESPAWN,
-        ));
     }
 
     // Variable jump height
@@ -215,10 +208,6 @@ pub fn gameplay_update(
             commands.entity(entity).despawn();
             score.value += 10;
             coins.value += 1;
-            commands.spawn((
-                AudioPlayer::<AudioSource>(asset_server.load("audio/coin.wav")),
-                PlaybackSettings::DESPAWN,
-            ));
         }
 
         // Power-up collection
@@ -238,10 +227,6 @@ pub fn gameplay_update(
 
             score.value += 50;
             commands.entity(entity).despawn();
-            commands.spawn((
-                AudioPlayer::<AudioSource>(asset_server.load("audio/powerup.wav")),
-                PlaybackSettings::DESPAWN,
-            ));
         }
 
         // Enemy stomp
@@ -254,10 +239,6 @@ pub fn gameplay_update(
             commands.entity(entity).despawn();
             velocity.value.y = -300.0;
             score.value += 100;
-            commands.spawn((
-                AudioPlayer::<AudioSource>(asset_server.load("audio/stomp.wav")),
-                PlaybackSettings::DESPAWN,
-            ));
         }
     }
 
@@ -273,10 +254,6 @@ pub fn gameplay_update(
             }
 
             if lives.value == 0 {
-                commands.spawn((
-                    AudioPlayer::<AudioSource>(asset_server.load("audio/death.wav")),
-                    PlaybackSettings::DESPAWN,
-                ));
                 next_state.set(GameState::GameOver);
             } else {
                 timer.seconds = timer.time_limit;

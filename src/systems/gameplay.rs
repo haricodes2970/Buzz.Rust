@@ -10,8 +10,6 @@ pub fn update_timer(
     time: Res<Time>,
     mut lives: ResMut<Lives>,
     mut next_state: ResMut<NextState<GameState>>,
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
 ) {
     if timer.expired {
         return;
@@ -28,10 +26,6 @@ pub fn update_timer(
         }
 
         if lives.value == 0 {
-            commands.spawn((
-                AudioPlayer::<AudioSource>(asset_server.load("audio/death.wav")),
-                PlaybackSettings::DESPAWN,
-            ));
             next_state.set(GameState::GameOver);
         } else {
             // Restart level - reset timer
@@ -45,7 +39,6 @@ pub fn update_timer(
 
 pub fn collect_coins(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     player_query: Query<(&Position, &Collider), With<Player>>,
     coin_query: Query<(Entity, &Transform, &Collider), With<Coin>>,
     mut score: ResMut<Score>,
@@ -73,10 +66,6 @@ pub fn collect_coins(
             commands.entity(entity).despawn();
             score.value += 10;
             coins.value += 1;
-            commands.spawn((
-                AudioPlayer::<AudioSource>(asset_server.load("audio/coin.wav")),
-                PlaybackSettings::DESPAWN,
-            ));
         }
     }
 }
@@ -85,7 +74,6 @@ pub fn collect_coins(
 
 pub fn collect_powerup(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     mut player_query: Query<(&mut Position, &mut Collider, &mut PowerState), With<Player>>,
     powerup_query: Query<(Entity, &Transform, &Collider, &PowerUpType)>,
     mut power_up_state: ResMut<PowerUpState>,
@@ -138,10 +126,6 @@ pub fn collect_powerup(
                 }
 
                 score.value += 50;
-                commands.spawn((
-                    AudioPlayer::<AudioSource>(asset_server.load("audio/powerup.wav")),
-                    PlaybackSettings::DESPAWN,
-                ));
             }
         }
     }
@@ -151,7 +135,6 @@ pub fn collect_powerup(
 
 pub fn stomp_enemy(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     mut player_query: Query<(&mut Velocity, &Position, &Collider), With<Player>>,
     enemy_query: Query<(Entity, &Transform, &Collider), (With<Enemy>, With<Stompable>)>,
     mut score: ResMut<Score>,
@@ -183,10 +166,6 @@ pub fn stomp_enemy(
             commands.entity(entity).despawn();
             velocity.value.y = -300.0; // Bounce
             score.value += 100;
-            commands.spawn((
-                AudioPlayer::<AudioSource>(asset_server.load("audio/stomp.wav")),
-                PlaybackSettings::DESPAWN,
-            ));
         }
     }
 }
@@ -195,7 +174,6 @@ pub fn stomp_enemy(
 
 pub fn check_level_end(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     player_query: Query<(&Position, &Collider), With<Player>>,
     trigger_query: Query<&Transform, (With<Name>, Without<Player>)>,
     mut next_state: ResMut<NextState<GameState>>,
