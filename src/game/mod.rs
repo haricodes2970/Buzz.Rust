@@ -1,7 +1,6 @@
 pub mod components;
 pub mod resources;
 
-use bevy::audio::{AudioPlayer, AudioSource};
 use bevy::prelude::*;
 use crate::assets::{AnimationTimer, GameAssets};
 use crate::game::components::*;
@@ -47,6 +46,7 @@ pub struct LevelEntities;
 
 fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<GameAssets>) {
     // Spawn player with Kenney sprite
+    let player_img = assets.player_idle.first().cloned().unwrap_or_default();
     commands.spawn((
         Player,
         Position { value: Vec2::new(100.0, 300.0) },
@@ -60,7 +60,7 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<Gam
             true,
         ),
         Sprite {
-            image: assets.player_idle[0].clone(),
+            image: player_img,
             ..default()
         },
         Name::new("Player"),
@@ -75,13 +75,14 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<Gam
     ));
 
     // Spawn ground platforms using Kenney tiles
+    let ground_img = assets.ground_tile.clone();
     for x in 0..160 {
         commands.spawn((
             LevelEntities,
             Collider::new(18.0, 18.0),
             Transform::from_xyz(x as f32 * 18.0 + 9.0, 400.0, 0.0),
             Sprite {
-                image: assets.ground_tile.clone(),
+                image: ground_img.clone(),
                 ..default()
             },
             Name::new("Ground"),
@@ -94,7 +95,7 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<Gam
         Collider::new(18.0 * 4.0, 18.0),
         Transform::from_xyz(400.0, 300.0, 0.0),
         Sprite {
-            image: assets.ground_tile.clone(),
+            image: ground_img.clone(),
             ..default()
         },
         Name::new("Platform"),
@@ -105,7 +106,7 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<Gam
         Collider::new(18.0 * 3.0, 18.0),
         Transform::from_xyz(700.0, 240.0, 0.0),
         Sprite {
-            image: assets.ground_tile.clone(),
+            image: ground_img.clone(),
             ..default()
         },
         Name::new("Platform2"),
@@ -116,13 +117,15 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<Gam
         Collider::new(18.0 * 4.0, 18.0),
         Transform::from_xyz(1000.0, 180.0, 0.0),
         Sprite {
-            image: assets.ground_tile.clone(),
+            image: ground_img.clone(),
             ..default()
         },
         Name::new("Platform3"),
     ));
 
     // Spawn coins
+    let coin_img0 = assets.coin.first().cloned().unwrap_or_default();
+    let coin_img1 = assets.coin.get(1).cloned().unwrap_or_default();
     commands.spawn((
         LevelEntities,
         Coin,
@@ -130,7 +133,7 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<Gam
         Position { value: Vec2::new(420.0, 270.0) },
         Collider::new(12.0, 12.0),
         Sprite {
-            image: assets.coin[0].clone(),
+            image: coin_img0,
             ..default()
         },
         Name::new("Coin"),
@@ -143,7 +146,7 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<Gam
         Position { value: Vec2::new(440.0, 270.0) },
         Collider::new(12.0, 12.0),
         Sprite {
-            image: assets.coin[1].clone(),
+            image: coin_img1,
             ..default()
         },
         Name::new("Coin2"),
@@ -165,6 +168,7 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<Gam
     ));
 
     // Spawn a Goomba enemy
+    let goomba_img = assets.goomba.first().cloned().unwrap_or_default();
     commands.spawn((
         LevelEntities,
         Enemy,
@@ -180,7 +184,7 @@ fn setup_level(mut commands: Commands, _config: Res<GameConfig>, assets: Res<Gam
             true,
         ),
         Sprite {
-            image: assets.goomba[0].clone(),
+            image: goomba_img,
             ..default()
         },
         Name::new("Goomba"),

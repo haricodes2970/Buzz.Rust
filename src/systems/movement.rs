@@ -14,22 +14,22 @@ pub fn handle_input(
     current_state: Res<State<GameState>>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
-    match current_state.get() {
-        GameState::MainMenu | GameState::GameOver | GameState::LevelComplete => {
-            if keyboard.just_pressed(KeyCode::Space) || keyboard.just_pressed(KeyCode::Enter) {
+    let state = *current_state.get();
+
+    if state == GameState::MainMenu || state == GameState::GameOver || state == GameState::LevelComplete {
+        if keyboard.just_pressed(KeyCode::Space) || keyboard.just_pressed(KeyCode::Enter) {
+            next_state.set(GameState::Playing);
+        }
+    }
+
+    if state == GameState::Playing || state == GameState::Paused {
+        if keyboard.just_pressed(KeyCode::Escape) || keyboard.just_pressed(KeyCode::Enter) {
+            if state == GameState::Playing {
+                next_state.set(GameState::Paused);
+            } else {
                 next_state.set(GameState::Playing);
             }
         }
-        GameState::Playing | GameState::Paused => {
-            if keyboard.just_pressed(KeyCode::Escape) || keyboard.just_pressed(KeyCode::Enter) {
-                match current_state.get() {
-                    GameState::Playing => next_state.set(GameState::Paused),
-                    GameState::Paused => next_state.set(GameState::Playing),
-                    _ => {}
-                }
-            }
-        }
-        _ => {}
     }
 }
 

@@ -59,16 +59,10 @@ impl AnimationTimer {
 
 // Load all Kenney pixel-platformer assets
 pub fn load_assets(
-    mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut assets: ResMut<GameAssets>,
 ) {
-    // --- Character sprites (24x24 each, tiles_0000 to tiles_0026) ---
-    // Character tiles layout (9x3 grid):
-    // Row 0 (tiles 0-8): Idle/Run frames
-    // Row 1 (tiles 9-17): Jump/Fall frames
-    // Row 2 (tiles 18-26): Other frames
-
+    // --- Character sprites (24x24 each) ---
     // Player idle: tiles 0-3 (4 frames)
     assets.player_idle = (0..4)
         .map(|i| asset_server.load(format!("kenney_pixel-platformer/Tiles/Characters/tile_{:04}.png", i)))
@@ -107,7 +101,7 @@ pub fn load_assets(
         .collect();
 
     // --- Item sprites ---
-    // Coin: use tile_0000 from Tiles/ directory (18x18 tiles)
+    // Coin: use tiles 0-3 from Tiles/ directory
     assets.coin = (0..4)
         .map(|i| asset_server.load(format!("kenney_pixel-platformer/Tiles/tile_{:04}.png", i)))
         .collect();
@@ -119,13 +113,13 @@ pub fn load_assets(
     assets.one_up = asset_server.load("kenney_pixel-platformer/Tiles/Characters/tile_0015.png");
 
     // --- Tile sprites (18x18 each) ---
-    // Ground tile: tile_0000 from main Tiles directory
+    // Ground tile
     assets.ground_tile = asset_server.load("kenney_pixel-platformer/Tiles/tile_0000.png");
 
-    // Grass tile: tile_0001
+    // Grass tile
     assets.grass_tile = asset_server.load("kenney_pixel-platformer/Tiles/tile_0001.png");
 
-    // Dirt tile: tile_0002
+    // Dirt tile
     assets.dirt_tile = asset_server.load("kenney_pixel-platformer/Tiles/tile_0002.png");
 
     // Pipe tiles
